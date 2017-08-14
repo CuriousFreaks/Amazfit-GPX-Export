@@ -7,7 +7,10 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -20,17 +23,20 @@ public class GPXExport {
 		// TODO Auto-generated method stub
 		File directory = new File(String.valueOf("./CuriousFreaks"));
 		File gpxdata = new File(String.valueOf("./gpxdata"));
-		File logFile = new File(String.valueOf("./log.txt"));
+		File logDir = new File(String.valueOf("./log"));
 		Logger logger =Logger.getLogger(GPXExport.class.getName());
 		FileHandler filehandler = null;
 		
 		
-				
-		if(logFile.exists())
-			logFile.delete();
-		
+		if(!logDir.exists())
+			logDir.mkdir();
+		else
+		{
+			deleteRecursive(logDir);
+			logDir.mkdir();
+		}
 		try {
-			filehandler = new FileHandler("./log.txt", true);
+			filehandler = new FileHandler("./log/log.txt", true);
 			logger.addHandler(filehandler);
 			filehandler.setFormatter(new SimpleFormatter());
 		} catch (SecurityException | IOException e1) {
@@ -99,26 +105,34 @@ public class GPXExport {
 				//sport_data_item.setTimestamp(rs.getTimestamp("timestamp"));
 				sport_data_list.add(sport_data_item);
 			}
-			long track_id=-1;
+			rs=stmt.executeQuery("select * from sport_summary");
+			ArrayList<sport_summary> sport_summary_list = new ArrayList<>();
+			while(rs.next())
+			{
+				sport_summary sport_summary_item= new  sport_summary();
+				sport_summary_item.setTrack_id(rs.getLong("track_id"));
+				sport_summary_item.setStart_time(rs.getLong("start_time"));
+				sport_summary_list.add(sport_summary_item);
+			}
 			GPXDataHandler gpxDataHandle = null;
 			int i=1;
-			for(sport_data sport_data_item:sport_data_list)
+			for(sport_summary sport_summary_item:sport_summary_list)
 			{
-				long new_track_id = sport_data_item.getTrack_id();
-				if(track_id!=new_track_id)
-				{
-					track_id=new_track_id;
-					if(gpxDataHandle!=null)
-					{
-						gpxDataHandle.closeFile();
-					}
-					gpxDataHandle = new GPXDataHandler("track_gpx_"+i);i++;
-				}
+				Long summary_track_id=sport_summary_item.getTrack_id();
+				String fname=timestampToDate(sport_summary_item.getStart_time(), "filename");
+				String creationTime=timestampToDate(sport_summary_item.getStart_time(),"timeformate");
+				System.out.println("File Name :"+creationTime);
 				if(gpxDataHandle!=null)
 				{
-					gpxDataHandle.writeLattitude(sport_data_item.getLatitude());
-					gpxDataHandle.writeLongitude(sport_data_item.getLongitude());
+					gpxDataHandle.closeFile();
 				}
+				gpxDataHandle = new GPXDataHandler(fname,creationTime,i);i++;
+				for(sport_data sport_data_item:sport_data_list)
+				{
+					long sport_track_id=sport_data_item.getTrack_id();
+					if(sport_track_id==summary_track_id)
+						gpxDataHandle.writeLocationData(sport_data_item.getLatitude(), sport_data_item.getLongitude(), timestampToDate(sport_data_item.getTimestamp(), "timeformate"));
+				}					
 			}
 			gpxDataHandle.closeFile();
 		} catch (ClassNotFoundException | SQLException | IOException e) {
@@ -128,6 +142,22 @@ public class GPXExport {
 		JOptionPane.showMessageDialog(null, "GPX data export process has completed. Please check gpxdata folder for all gpx files.", "Curious Freaks", JOptionPane.INFORMATION_MESSAGE);
 		logger.info("completed.. exit now");
 		System.exit(0);	
+	}
+	private static String timestampToDate(long val, String ftype){
+		System.out.println("Val:  "+val);
+		Date d = new Date((long)val);
+		DateFormat f = null;
+		if(ftype.equals("filename"))
+		{
+			f = new SimpleDateFormat("dd-MMM-yyyy_H.mm_a");
+			System.out.println(f.format(d));
+		}
+		if(ftype.equals("timeformate"))
+		{
+			f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.mmm'Z'");
+			System.out.println(f.format(d));
+		}
+		return f.format(d);
 	}
 	public static void deleteRecursive(File parent){
 	    File[] files = parent.listFiles();

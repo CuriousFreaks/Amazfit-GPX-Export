@@ -1,11 +1,9 @@
-import java.sql.Timestamp;
-
 public class sport_data {
 private long track_id;
 private long point_index;
 private double latitude;
 private double longitude;
-private Timestamp timestamp;
+private long timestamp;
 private long bar; 
 private double altitude;
 private double accuracy;
@@ -37,12 +35,6 @@ public double getLongitude() {
 }
 public void setLongitude(double longitude) {
 	this.longitude = longitude;
-}
-public Timestamp getTimestamp() {
-	return timestamp;
-}
-public void setTimestamp(Timestamp timestamp) {
-	this.timestamp = timestamp;
 }
 public long getBar() {
 	return bar;
@@ -91,5 +83,11 @@ public long getPoint_type() {
 }
 public void setPoint_type(long point_type) {
 	this.point_type = point_type;
+}
+public long getTimestamp() {
+	return timestamp;
+}
+public void setTimestamp(long timestamp) {
+	this.timestamp = timestamp;
 }
 }
